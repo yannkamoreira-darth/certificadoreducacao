@@ -12,11 +12,9 @@ st.set_page_config(page_title="Gerador Almirante Tamandaré", layout="wide")
 # --- FUNÇÃO AUXILIAR PARA ENCONTRAR A FONTE (RESOLVE MAIÚSCULAS/MINÚSCULAS) ---
 def obter_caminho_fonte():
     nome_procurado = "arbutusslab-regular.ttf"
-    # Lista os arquivos da raiz do projeto
     for arquivo in os.listdir("."):
         if arquivo.lower() == nome_procurado:
             return arquivo
-    # Caso não encontre de forma dinâmica, retorna o padrão estruturado
     return "ArbutusSlab-Regular.ttf"
 
 # --- FUNÇÃO 1: CERTIFICADO ALUNOS (MANTÉM ARIAL PADRÃO) ---
@@ -62,7 +60,7 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     
     if medalha == "SUPERAÇÃO":
         frase = (f"Matriculado(a) na {turma.upper()}, pela notável evolução acadêmica "
-                 f"e esforço demonstrado no {bimestre} do Ano Letivo de 2026, "
+                 f"e esforço demonstrado no {bimestre} do Ano Letivo de 2026, "
                  f"conseguindo avançar nos estudos de forma melhorada.")
     else:
         frase = (f"Matriculado(a) na {turma.upper()}, pela excelência acadêmica "
@@ -105,12 +103,11 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     output.write(final_packet)
     return final_packet.getvalue()
 
-# --- FUNÇÃO 2: CERTIFICADO EVENTOS GERAIS (FORÇANDO ARBUTUS SLAB) ---
+# --- FUNÇÃO 2: CERTIFICADO EVENTOS GERAIS (USANDO O ARQUIVO CERTIFICADO_BANCA.PDF) ---
 def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_horaria):
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
     
-    # Busca o nome exato do arquivo físico registrado no GitHub
     arquivo_fonte = obter_caminho_fonte()
     canv.add_font("ArbutusSlab", "", arquivo_fonte, uni=True)
     
@@ -132,10 +129,12 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
     canv.multi_cell(237, 9, frase, align="C")
 
     temp_pdf_content = canv.output()
-    if not os.path.exists("Certificado_Eventos.pdf"):
-        raise FileNotFoundError("O arquivo 'Certificado_Eventos.pdf' não foi encontrado!")
+    
+    # CORREÇÃO AQUI: Agora aponta para o nome correto do seu arquivo PDF
+    if not os.path.exists("Certificado_banca.pdf"):
+        raise FileNotFoundError("O arquivo 'Certificado_banca.pdf' não foi encontrado na raiz do projeto!")
 
-    modelo_pdf = PdfReader(open("Certificado_Eventos.pdf", "rb"))
+    modelo_pdf = PdfReader(open("Certificado_banca.pdf", "rb"))
     overlay_pdf = PdfReader(io.BytesIO(temp_pdf_content))
     output = PdfWriter()
     pagina_modelo = modelo_pdf.pages[0]
@@ -150,7 +149,7 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
 # --- INTERFACE STREAMLIT ---
 st.title("🎓 Sistema de Certificação")
 
-# Criando apenas as 2 Abas reais que serão usadas no Dashboard
+# Criando as 2 Abas operacionais
 tab_alunos, tab_eventos = st.tabs([
     "🏆 Alunos Destaque", 
     "📅 Eventos Gerais"
