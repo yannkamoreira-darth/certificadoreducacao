@@ -137,7 +137,7 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
     canv.set_font(fonte_usada, "B" if fonte_usada == "Arial" else "", 24)
     canv.set_text_color(0, 51, 102) 
     canv.set_xy(30, 108)
-    frase = (f"Participou do evento como avaliador(a) {nome_evento.upper()} no ano de {ano} "
+    frase = (f"Participou do evento como avaliador(a) do(a) {nome_evento.upper()} no ano de {ano} "
              f"nesta unidade de ensino, com carga horária total de {carga_horaria}h.")
     canv.multi_cell(237, 9, frase, align="C")
 
