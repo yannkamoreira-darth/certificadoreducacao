@@ -95,7 +95,7 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     output.write(final_packet)
     return final_packet.getvalue()
 
-# --- FUNÇÃO 3: CERTIFICADO EVENTOS GERAIS (FORÇANDO ARBUTUS SLAB) ---
+# --- FUNÇÃO 2: CERTIFICADO EVENTOS GERAIS (FORÇANDO ARBUTUS SLAB) ---
 def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_horaria):
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
@@ -138,10 +138,9 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
 # --- INTERFACE STREAMLIT ---
 st.title("🎓 Sistema de Certificação")
 
-# Criando as 3 Abas no Dashboard
-tab_alunos, tab_banca, tab_eventos = st.tabs([
+# AJUSTADO: Criando apenas as 2 Abas reais que serão usadas no Dashboard
+tab_alunos, tab_eventos = st.tabs([
     "🏆 Alunos Destaque", 
-    "", 
     "📅 Eventos Gerais"
 ])
 
@@ -166,10 +165,8 @@ with tab_alunos:
     st.markdown("### Preenchimento Manual do Aluno")
     col1, col2 = st.columns([1, 2])
     with col1:
-        # Mudado de selectbox para text_input (campo em branco)
         turma_sel = st.text_input("Digite a Turma:", placeholder="Ex: 1ª SÉRIE A", key="turma_aluno")
     with col2:
-        # Mudado de selectbox para text_input (campo em branco)
         aluno_sel = st.text_input("Digite o Nome Completo do Aluno:", placeholder="Nome do estudante", key="nome_aluno")
 
     if st.button("🚀 GERAR CERTIFICADO DE ALUNO", use_container_width=True):
