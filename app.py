@@ -12,9 +12,12 @@ st.set_page_config(page_title="Gerador Almirante Tamandaré", layout="wide")
 # --- FUNÇÃO AUXILIAR PARA ENCONTRAR A FONTE (RESOLVE MAIÚSCULAS/MINÚSCULAS) ---
 def obter_caminho_fonte():
     nome_procurado = "arbutusslab-regular.ttf"
-    for arquivo in os.listdir("."):
-        if arquivo.lower() == nome_procurado:
-            return arquivo
+    try:
+        for arquivo in os.listdir("."):
+            if arquivo.lower() == nome_procurado:
+                return arquivo
+    except Exception:
+        pass
     return "ArbutusSlab-Regular.ttf"
 
 # --- FUNÇÃO 1: CERTIFICADO ALUNOS (MANTÉM ARIAL PADRÃO) ---
@@ -103,25 +106,35 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     output.write(final_packet)
     return final_packet.getvalue()
 
-# --- FUNÇÃO 2: CERTIFICADO EVENTOS GERAIS (USANDO O ARQUIVO CERTIFICADO_BANCA.PDF) ---
+# --- FUNÇÃO 2: CERTIFICADO EVENTOS GERAIS (SISTEMA ANTI-QUEBRA DE FONTE) ---
 def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_horaria):
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
     
     arquivo_fonte = obter_caminho_fonte()
-    canv.add_font("ArbutusSlab", "", arquivo_fonte, uni=True)
     
-    canv.set_font("ArbutusSlab", "", 24)
+    # PLANO B: Se o arquivo físico não for encontrado, usa Arial para não dar erro na tela
+    if os.path.exists(arquivo_fonte):
+        canv.add_font("ArbutusSlab", "", arquivo_fonte, uni=True)
+        fonte_usada = "ArbutusSlab"
+    else:
+        fonte_usada = "Arial"
+    
+    canv.set_font(fonte_usada, "B" if fonte_usada == "Arial" else "", 24)
     canv.set_text_color(0, 51, 102) 
     canv.set_xy(0, 75)
     canv.cell(297, 10, "Certificamos que", ln=True, align="C")
     
-    canv.set_font("ArbutusSlab", "", 26)
-    canv.set_text_color(212, 175, 55) 
+    canv.set_font(fonte_usada, "B" if fonte_usada == "Arial" else "", 26)
+    if fonte_usada == "ArbutusSlab":
+        canv.set_text_color(212, 175, 55) # Dourado se for a fonte correta
+    else:
+        canv.set_text_color(184, 134, 11) # DarkGoldenrod se for Arial (melhor leitura)
+        
     canv.set_xy(0, 88)
     canv.cell(297, 15, nome_participante.upper(), ln=True, align="C")
     
-    canv.set_font("ArbutusSlab", "", 24)
+    canv.set_font(fonte_usada, "B" if fonte_usada == "Arial" else "", 24)
     canv.set_text_color(0, 51, 102) 
     canv.set_xy(30, 108)
     frase = (f"Participou do evento {nome_evento.upper()} no ano de {ano} "
@@ -130,7 +143,6 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
 
     temp_pdf_content = canv.output()
     
-    # CORREÇÃO AQUI: Agora aponta para o nome correto do seu arquivo PDF
     if not os.path.exists("Certificado_banca.pdf"):
         raise FileNotFoundError("O arquivo 'Certificado_banca.pdf' não foi encontrado na raiz do projeto!")
 
