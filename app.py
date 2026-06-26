@@ -63,7 +63,7 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     
     if medalha == "SUPERAÇÃO":
         frase = (f"Matriculado(a) na {turma.upper()}, pela notável evolução acadêmica "
-                 f"e esforço demonstrado no {bimestre} do Ano Letivo de 2026, "
+                 f"e esforço demonstrado no {bimestre} do Ano Letivo de 2026, "
                  f"conseguindo avançar nos estudos de forma melhorada.")
     else:
         frase = (f"Matriculado(a) na {turma.upper()}, pela excelência acadêmica "
@@ -106,14 +106,13 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     output.write(final_packet)
     return final_packet.getvalue()
 
-# --- FUNÇÃO 2: CERTIFICADO EVENTOS GERAIS (SISTEMA ANTI-QUEBRA DE FONTE) ---
-def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_horaria):
+# --- FUNÇÃO 2: CERTIFICADO EVENTOS GERAIS (COM PREENCHIMENTO DINÂMICO DA ESCOLA) ---
+def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_horaria, nome_escola):
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
     
     arquivo_fonte = obter_caminho_fonte()
     
-    # PLANO B: Se o arquivo físico não for encontrado, usa Arial para não dar erro na tela
     if os.path.exists(arquivo_fonte):
         canv.add_font("ArbutusSlab", "", arquivo_fonte, uni=True)
         fonte_usada = "ArbutusSlab"
@@ -127,9 +126,9 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
     
     canv.set_font(fonte_usada, "B" if fonte_usada == "Arial" else "", 26)
     if fonte_usada == "ArbutusSlab":
-        canv.set_text_color(212, 175, 55) # Dourado se for a fonte correta
+        canv.set_text_color(212, 175, 55)
     else:
-        canv.set_text_color(184, 134, 11) # DarkGoldenrod se for Arial (melhor leitura)
+        canv.set_text_color(184, 134, 11)
         
     canv.set_xy(0, 88)
     canv.cell(297, 15, nome_participante.upper(), ln=True, align="C")
@@ -137,8 +136,10 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
     canv.set_font(fonte_usada, "B" if fonte_usada == "Arial" else "", 24)
     canv.set_text_color(0, 51, 102) 
     canv.set_xy(30, 108)
+    
+    # AJUSTADO: Texto alterado para incluir o nome da escola dinamicamente mantendo sua alteração de avaliador
     frase = (f"Participou do evento como avaliador(a) no evento {nome_evento.upper()} no ano de {ano} "
-             f"nesta unidade de ensino, com carga horária total de {carga_horaria}h.")
+             f"na {nome_escola.upper()}, com carga horária total de {carga_horaria}h.")
     canv.multi_cell(237, 9, frase, align="C")
 
     temp_pdf_content = canv.output()
@@ -207,6 +208,9 @@ with tab_alunos:
 with tab_eventos:
     st.subheader("Certificado de Eventos Gerais da Escola")
     
+    # ADICIONADO: Campo para definir o nome da escola direto no painel
+    nome_escola_ev = st.text_input("Nome da Unidade de Ensino / Escola:", "EEMTI Almirante Tamandaré", key="ev_escola")
+    
     col_ev1, col_ev2 = st.columns(2)
     with col_ev1:
         nome_part_ev = st.text_input("Nome Completo do Participante / Professor:", key="ev_part").upper()
@@ -217,11 +221,12 @@ with tab_eventos:
         ch_ev = st.text_input("Carga Horária (Apenas números, Ex: 4, 10, 20):", "5", key="ev_ch")
 
     if st.button("🚀 GERAR CERTIFICADO DE EVENTO GERAL", use_container_width=True):
-        if nome_part_ev.strip() == "" or nome_evento_ev.strip() == "":
-            st.warning("Por favor, preencha o nome do participante e o nome do evento.")
+        if nome_part_ev.strip() == "" or nome_evento_ev.strip() == "" or nome_escola_ev.strip() == "":
+            st.warning("Por favor, preencha todos os campos obrigatórios (Escola, Participante e Evento).")
         else:
             try:
-                pdf_evento = gerar_certificado_evento_geral(nome_part_ev, nome_evento_ev, ano_sel_ev, ch_ev)
+                # ENVIANDO: Agora passamos o parâmetro 'nome_escola_ev'
+                pdf_evento = gerar_certificado_evento_geral(nome_part_ev, nome_evento_ev, ano_sel_ev, ch_ev, nome_escola_ev)
                 st.download_button(
                     label=f"💾 BAIXAR CERTIFICADO - {nome_part_ev}",
                     data=pdf_evento,
