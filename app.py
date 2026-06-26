@@ -9,6 +9,16 @@ from datetime import datetime
 # Configuração da página
 st.set_page_config(page_title="Gerador Almirante Tamandaré", layout="wide")
 
+# --- FUNÇÃO AUXILIAR PARA ENCONTRAR A FONTE (RESOLVE MAIÚSCULAS/MINÚSCULAS) ---
+def obter_caminho_fonte():
+    nome_procurado = "arbutusslab-regular.ttf"
+    # Lista os arquivos da raiz do projeto
+    for arquivo in os.listdir("."):
+        if arquivo.lower() == nome_procurado:
+            return arquivo
+    # Caso não encontre de forma dinâmica, retorna o padrão estruturado
+    return "ArbutusSlab-Regular.ttf"
+
 # --- FUNÇÃO 1: CERTIFICADO ALUNOS (MANTÉM ARIAL PADRÃO) ---
 def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bimestre, medalha):
     packet = io.BytesIO()
@@ -100,7 +110,9 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
     
-    canv.add_font("ArbutusSlab", "", "ArbutusSlab-Regular.ttf", uni=True)
+    # Busca o nome exato do arquivo físico registrado no GitHub
+    arquivo_fonte = obter_caminho_fonte()
+    canv.add_font("ArbutusSlab", "", arquivo_fonte, uni=True)
     
     canv.set_font("ArbutusSlab", "", 24)
     canv.set_text_color(0, 51, 102) 
@@ -138,7 +150,7 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
 # --- INTERFACE STREAMLIT ---
 st.title("🎓 Sistema de Certificação")
 
-# AJUSTADO: Criando apenas as 2 Abas reais que serão usadas no Dashboard
+# Criando apenas as 2 Abas reais que serão usadas no Dashboard
 tab_alunos, tab_eventos = st.tabs([
     "🏆 Alunos Destaque", 
     "📅 Eventos Gerais"
