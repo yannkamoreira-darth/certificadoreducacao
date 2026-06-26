@@ -136,7 +136,7 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
 
 
 # --- INTERFACE STREAMLIT ---
-st.title("🎓 Sistema de Certificação - Almirante Tamandaré")
+st.title("🎓 Sistema de Certificação")
 
 # Criando as 3 Abas no Dashboard
 tab_alunos, tab_banca, tab_eventos = st.tabs([
@@ -150,11 +150,11 @@ with tab_alunos:
     with st.expander("⚙️ Configurações de Assinaturas e Critérios dos Alunos", expanded=True):
         col_c1, col_c2, col_c3 = st.columns(3)
         with col_c1:
-            nome_coord = st.text_input("Coordenador(a):", "COORDENADORA", key="cfg_coord")
+            nome_coord = st.text_input("Coordenador(a):", "COORDENADOR(A)", key="cfg_coord")
         with col_c2:
             nome_pdt = st.text_input("Professor(a) PDT:", "NOME DO PROFESSOR(A)", key="cfg_pdt")
         with col_c3:
-            nome_diretor = st.text_input("Diretor(a):", "ALAN TAVARES RIBEIRO", key="cfg_dir")
+            nome_diretor = st.text_input("Diretor(a):", "NOME DIRETOR(A)", key="cfg_dir")
         
         st.divider()
         col_c4, col_c5 = st.columns(2)
