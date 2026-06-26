@@ -184,7 +184,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #666666; font-size: 0.9em; padding: 10px;'>
-        © 2026 Certificação Escolar - Desenvolvido por <b>Prof. Yannka Moreira - AGI SEFOR II</b>
+        © 2026 Certificação Escolar - Desenvolvido por <b>Prof Alan Ribeiro e Prof. Yannka Moreira</b>
     </div>
     """, 
     unsafe_allow_html=True
