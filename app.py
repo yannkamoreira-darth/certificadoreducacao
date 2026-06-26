@@ -7,7 +7,7 @@ import os
 from datetime import datetime
 
 # Configuração da página
-st.set_page_config(page_title="Gerador Almirante Tamandaré", layout="wide")
+st.set_page_config(page_title="Gerador de Certificados", layout="wide")
 
 # --- FUNÇÃO AUXILIAR PARA ENCONTRAR A FONTE (RESOLVE MAIÚSCULAS/MINÚSCULAS) ---
 def obter_caminho_fonte():
@@ -209,7 +209,7 @@ with tab_eventos:
     st.subheader("Certificado de Eventos Gerais da Escola")
     
     # ADICIONADO: Campo para definir o nome da escola direto no painel
-    nome_escola_ev = st.text_input("Nome da Unidade de Ensino / Escola:", "EEMTI Almirante Tamandaré", key="ev_escola")
+    nome_escola_ev = st.text_input("Nome da Unidade de Ensino:", "Nome da Escola", key="ev_escola")
     
     col_ev1, col_ev2 = st.columns(2)
     with col_ev1:
