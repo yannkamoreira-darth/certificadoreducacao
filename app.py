@@ -6,11 +6,21 @@ import io
 import os
 from datetime import datetime
 
-# Configuração da página
-st.set_page_config(page_title="Gerador de Certificados", layout="wide")
+# ==============================================================================
+# CONFIGURAÇÃO DA PÁGINA
+# ==============================================================================
+# Alterado para um título genérico para servir a qualquer escola
+st.set_page_config(page_title="Gerador de Certificados Escolares", layout="wide")
 
-# --- FUNÇÃO AUXILIAR PARA ENCONTRAR A FONTE (RESOLVE MAIÚSCULAS/MINÚSCULAS) ---
+
+# ==============================================================================
+# FUNÇÕES AUXILIARES
+# ==============================================================================
 def obter_caminho_fonte():
+    """
+    Procura o arquivo de fonte customizado no diretório atual,
+    ignorando diferenças entre maiúsculas e minúsculas no nome do arquivo.
+    """
     nome_procurado = "arbutusslab-regular.ttf"
     try:
         for arquivo in os.listdir("."):
@@ -20,12 +30,20 @@ def obter_caminho_fonte():
         pass
     return "ArbutusSlab-Regular.ttf"
 
-# --- FUNÇÃO 1: CERTIFICADO ALUNOS (MANTÉM ARIAL PADRÃO) ---
-def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bimestre, medalha):
+
+# ==============================================================================
+# FUNÇÃO 1: GERAR CERTIFICADO DE ALUNOS (DESTAQUE / SUPERAÇÃO)
+# ==============================================================================
+def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bimestre, medalha, nome_escola):
+    """
+    Gera o PDF do certificado de alunos usando posições fixas em milímetros.
+    Recebe 'nome_escola' dinamicamente para não ficar preso a uma única instituição.
+    """
     packet = io.BytesIO()
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
     
+    # Definição das cores e títulos de acordo com a medalha
     if medalha == "OURO":
         cor_rgb = (212, 175, 55)
         texto_titulo = "ALUNO(A) DESTAQUE"
@@ -38,40 +56,46 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
         cor_rgb = (176, 115, 67)
         texto_titulo = "ALUNO(A) DESTAQUE"
         frase_inicial = "Certificamos como"
-    else:
+    else:  # SUPERAÇÃO
         cor_rgb = (0, 51, 102)
         texto_titulo = "SUPERAÇÃO"
         frase_inicial = "Certificamos como aluno(a)"
 
+    # Cabeçalho do certificado
     canv.set_font("Arial", "B", 16)
     canv.set_text_color(0, 0, 0)
     canv.set_xy(0, 48)
     canv.cell(297, 10, frase_inicial, ln=True, align="C")
 
+    # Título da Medalha/Destaque
     canv.set_font("Arial", "B", 36)
     canv.set_text_color(*cor_rgb)
     canv.set_xy(0, 60)
     canv.cell(297, 10, texto_titulo, ln=True, align="C")
 
+    # Nome do Estudante
     canv.set_font("Arial", "B", 26)
     canv.set_text_color(0, 0, 0)
     canv.set_xy(0, 74)
     canv.cell(297, 20, nome_aluno.upper(), ln=True, align="C")
     
+    # Corpo do Texto
     canv.set_font("Arial", "B", 16)
     canv.set_xy(25, 98)
     
     if medalha == "SUPERAÇÃO":
         frase = (f"Matriculado(a) na {turma.upper()}, pela notável evolução acadêmica "
-                 f"e esforço demonstrado no {bimestre} do Ano Letivo de 2026, "
-                 f"conseguindo avançar nos estudos de forma melhorada.")
+                 f"e esforço demonstrado no {bimestre} do Ano Letivo de {datetime.now().year}, "
+                 f"conseguindo avançar nos estudos de forma melhorada na {nome_escola.upper()}.")
     else:
+        # AGORA DINÂMICO: Usa a variável nome_escola em vez do nome fixo anterior
         frase = (f"Matriculado(a) na {turma.upper()}, pela excelência acadêmica "
-                 f"nos estudos no {bimestre} do Ano Letivo de 2026 da EEMTI Almirante Tamandaré, "
+                 f"nos estudos no {bimestre} do Ano Letivo de {datetime.now().year} da {nome_escola.upper()}, "
                  f"alcançou padrão {medalha}.")
         
     canv.multi_cell(247, 8, frase, align="C")
 
+    # Data Atual por extenso
     meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
              "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
     hoje = datetime.now()
@@ -81,6 +105,7 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     canv.set_xy(0, 120)
     canv.cell(297, 10, data_extenso, ln=True, align="C")
     
+    # Assinaturas
     canv.set_font("Arial", "B", 12)
     canv.line(45, 146, 125, 146)
     canv.set_xy(35, 148)
@@ -94,6 +119,7 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     canv.set_xy(0, 172)
     canv.cell(297, 10, diretor.upper(), 0, 1, "C")
     
+    # Mesclar com o PDF modelo de fundo
     temp_pdf_content = canv.output()
     modelo_pdf = PdfReader(open("Certificado.pdf", "rb"))
     overlay_pdf = PdfReader(io.BytesIO(temp_pdf_content))
@@ -106,8 +132,14 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     output.write(final_packet)
     return final_packet.getvalue()
 
-# --- FUNÇÃO 2: CERTIFICADO EVENTOS GERAIS (COM PREENCHIMENTO DINÂMICO DA ESCOLA) ---
+
+# ==============================================================================
+# FUNÇÃO 2: GERAR CERTIFICADO DE EVENTOS GERAIS
+# ==============================================================================
 def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_horaria, nome_escola):
+    """
+    Gera o PDF de eventos gerais recebendo o nome da escola dinamicamente.
+    """
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
     
@@ -137,7 +169,7 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
     canv.set_text_color(0, 51, 102) 
     canv.set_xy(30, 108)
     
-    # AJUSTADO: Texto alterado para incluir o nome da escola dinamicamente mantendo sua alteração de avaliador
+    # Texto formatado dinamicamente com a escola informada no painel
     frase = (f"Participou do evento como avaliador(a) no evento {nome_evento.upper()} no ano de {ano} "
              f"na {nome_escola.upper()}, com carga horária total de {carga_horaria}h.")
     canv.multi_cell(237, 9, frase, align="C")
@@ -159,8 +191,10 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
     return final_packet.getvalue()
 
 
-# --- INTERFACE STREAMLIT ---
-st.title("🎓 Sistema de Certificação")
+# ==============================================================================
+# INTERFACE COM O USUÁRIO (STREAMLIT)
+# ==============================================================================
+st.title("🎓 Sistema de Certificação Escolar")
 
 # Criando as 2 Abas operacionais
 tab_alunos, tab_eventos = st.tabs([
@@ -168,9 +202,15 @@ tab_alunos, tab_eventos = st.tabs([
     "📅 Eventos Gerais"
 ])
 
-# --- CONTEÚDO DA ABA 1: ALUNOS ---
+# ------------------------------------------------------------------------------
+# ABA 1: ALUNOS DESTAQUE
+# ------------------------------------------------------------------------------
 with tab_alunos:
-    with st.expander("⚙️ Configurações de Assinaturas e Critérios dos Alunos", expanded=True):
+    with st.expander("⚙️ Configurações da Escola e Assinaturas", expanded=True):
+        # Campo adicionado para permitir definir a escola também no certificado do aluno
+        nome_escola_aluno = st.text_input("Nome da Escola / Unidade de Ensino:", "EEMTI Almirante Tamandaré", key="cfg_escola_aluno")
+        
+        st.divider()
         col_c1, col_c2, col_c3 = st.columns(3)
         with col_c1:
             nome_coord = st.text_input("Coordenador(a):", "COORDENADOR(A)", key="cfg_coord")
@@ -194,22 +234,31 @@ with tab_alunos:
         aluno_sel = st.text_input("Digite o Nome Completo do Aluno:", placeholder="Nome do estudante", key="nome_aluno")
 
     if st.button("🚀 GERAR CERTIFICADO DE ALUNO", use_container_width=True):
-        if not turma_sel.strip() or not aluno_sel.strip():
-            st.warning("⚠️ Por favor, preencha a Turma e o Nome do Aluno antes de gerar!")
+        if not turma_sel.strip() or not aluno_sel.strip() or not nome_escola_aluno.strip():
+            st.warning("⚠️ Por favor, preencha o Nome da Escola, a Turma e o Nome do Aluno!")
         else:
             try:
-                pdf_final = gerar_certificado_no_padrao(aluno_sel, turma_sel, nome_coord, nome_pdt, nome_diretor, bimestre_sel, padrao_sel)
-                st.download_button(label=f"💾 BAIXAR PDF - {aluno_sel.upper()}", data=pdf_final, file_name=f"Certificado_{padrao_sel}_{aluno_sel.replace(' ', '_')}.pdf", mime="application/pdf")
+                # Agora envia também o nome_escola_aluno para a função
+                pdf_final = gerar_certificado_no_padrao(
+                    aluno_sel, turma_sel, nome_coord, nome_pdt, nome_diretor, bimestre_sel, padrao_sel, nome_escola_aluno
+                )
+                st.download_button(
+                    label=f"💾 BAIXAR PDF - {aluno_sel.upper()}",
+                    data=pdf_final,
+                    file_name=f"Certificado_{padrao_sel}_{aluno_sel.replace(' ', '_')}.pdf",
+                    mime="application/pdf"
+                )
                 st.balloons()
             except Exception as e:
-                st.error(f"Erro: {e}")
+                st.error(f"Erro ao gerar certificado: {e}")
 
-# --- CONTEÚDO DA ABA 2: EVENTOS GERAIS ---
+# ------------------------------------------------------------------------------
+# ABA 2: EVENTOS GERAIS
+# ------------------------------------------------------------------------------
 with tab_eventos:
     st.subheader("Certificado de Eventos Gerais da Escola")
     
-    # ADICIONADO: Campo para definir o nome da escola direto no painel
-    nome_escola_ev = st.text_input("Nome da Unidade de Ensino:", "Nome da Escola", key="ev_escola")
+    nome_escola_ev = st.text_input("Nome da Unidade de Ensino / Escola:", "EEMTI Almirante Tamandaré", key="ev_escola")
     
     col_ev1, col_ev2 = st.columns(2)
     with col_ev1:
@@ -225,7 +274,6 @@ with tab_eventos:
             st.warning("Por favor, preencha todos os campos obrigatórios (Escola, Participante e Evento).")
         else:
             try:
-                # ENVIANDO: Agora passamos o parâmetro 'nome_escola_ev'
                 pdf_evento = gerar_certificado_evento_geral(nome_part_ev, nome_evento_ev, ano_sel_ev, ch_ev, nome_escola_ev)
                 st.download_button(
                     label=f"💾 BAIXAR CERTIFICADO - {nome_part_ev}",
@@ -233,17 +281,19 @@ with tab_eventos:
                     file_name=f"Certificado_Evento_{nome_part_ev}.pdf",
                     mime="application/pdf"
                 )
-                st.success(f"Certificado gerado com sucesso!")
+                st.success("Certificado gerado com sucesso!")
                 st.balloons()
             except Exception as e:
                 st.error(f"Erro ao gerar certificado de evento: {e}")
 
-# --- RODAPÉ ---
+# ------------------------------------------------------------------------------
+# RODAPÉ
+# ------------------------------------------------------------------------------
 st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #666666; font-size: 0.9em; padding: 10px;'>
-        © 2026 Certificação Tamandaré - Desenvolvido por <b>Prof. Yannka Moreira</b> e <b>Prof. Alan Ribeiro</b>
+        © 2026 Gerador de Certificados - Desenvolvido por <b>Prof. Yannka Moreira</b> e <b>Prof. Alan Ribeiro</b>
     </div>
     """, 
     unsafe_allow_html=True
