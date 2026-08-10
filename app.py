@@ -11,7 +11,7 @@ from datetime import datetime
 st.set_page_config(page_title="Gerador Multiescolas de Certificados", layout="wide")
 
 # ==========================================
-# BARRA LATERAL (SIDEBAR): UPLOAD DA LOGO
+# BARRA LATERAL (SIDEBAR): CONFIGURAÇÕES DA ESCOLA
 # ==========================================
 st.sidebar.header("🏫 Configuração da Escola")
 logo_escola = st.sidebar.file_uploader(
@@ -21,27 +21,33 @@ logo_escola = st.sidebar.file_uploader(
 )
 
 if logo_escola is not None:
-    st.sidebar.image(logo_escola, caption="Prévia da Logo", width=150)
+    st.sidebar.image(logo_escola, caption="Prévia da Logo", width=120)
+
+# Ajuste de Posição e Tamanho da Logo
+with st.sidebar.expander("📐 Ajuste Fino da Logo no PDF", expanded=False):
+    pos_x = st.number_input("Posição X (Horizontal mm):", value=12, min_value=0, max_value=200, help="Menor valor move para a esquerda.")
+    pos_y = st.number_input("Posição Y (Vertical mm):", value=12, min_value=0, max_value=200, help="Menor valor move para o topo.")
+    largura_w = st.number_input("Largura da Logo (mm):", value=25, min_value=5, max_value=100, help="Tamanho da imagem.")
 
 
 # --- FUNÇÃO 1: CERTIFICADO ALUNOS ---
-def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bimestre, medalha, arquivo_logo=None):
+def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bimestre, medalha, arquivo_logo=None, lx=12, ly=12, lw=25):
     packet = io.BytesIO()
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
     
     # --------------------------------------
-    # INSERÇÃO DA LOGO DA ESCOLA (SE EXISTIR)
+    # INSERÇÃO DA LOGO COM POSICIONAMENTO AJUSTADO
     # --------------------------------------
     if arquivo_logo is not None:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
             temp_file.write(arquivo_logo.getvalue())
             caminho_logo_temp = temp_file.name
         
-        # Desenha a logo no canto superior esquerdo (X=20mm, Y=15mm, Largura=35mm)
-        canv.image(caminho_logo_temp, x=20, y=15, w=35)
+        # Desenha a logo utilizando as coordenadas personalizadas da barra lateral
+        canv.image(caminho_logo_temp, x=lx, y=ly, w=lw)
         
-        # Remove o arquivo temporário após o uso
+        # Remove o arquivo temporário do sistema
         os.unlink(caminho_logo_temp)
 
     # Definir cores e títulos com base no padrão/medalha
@@ -100,7 +106,7 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     canv.set_xy(0, 120)
     canv.cell(297, 10, data_extenso, ln=True, align="C")
     
-    # Linhas e nomes de assinaturas
+    # Linhas de Assinaturas
     canv.set_font("Arial", "B", 12)
     canv.line(45, 146, 125, 146)
     canv.set_xy(35, 148)
@@ -114,7 +120,7 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     canv.set_xy(0, 172)
     canv.cell(297, 10, diretor.upper(), 0, 1, "C")
     
-    # Junção das camadas PDF (Overlay)
+    # Mesclagem de Camadas
     temp_pdf_content = canv.output()
     if not os.path.exists("Certificado.pdf"):
         raise FileNotFoundError("O arquivo 'Certificado.pdf' de modelo não foi encontrado!")
@@ -132,25 +138,18 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
 
 
 # --- FUNÇÃO 2: CERTIFICADO EVENTOS GERAIS ---
-def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_horaria, arquivo_logo=None):
+def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_horaria, arquivo_logo=None, lx=12, ly=12, lw=25):
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
     
-    # --------------------------------------
-    # INSERÇÃO DA LOGO DA ESCOLA (SE EXISTIR)
-    # --------------------------------------
     if arquivo_logo is not None:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
             temp_file.write(arquivo_logo.getvalue())
             caminho_logo_temp = temp_file.name
         
-        # Desenha a logo no canto superior esquerdo (X=20mm, Y=15mm, Largura=35mm)
-        canv.image(caminho_logo_temp, x=20, y=15, w=35)
-        
-        # Remove o arquivo temporário
+        canv.image(caminho_logo_temp, x=lx, y=ly, w=lw)
         os.unlink(caminho_logo_temp)
     
-    # Adiciona a fonte personalizada se disponível
     if os.path.exists("ArbutusSlab-Regular.ttf"):
         canv.add_font("ArbutusSlab", "", "ArbutusSlab-Regular.ttf", uni=True)
         fonte_usada = "ArbutusSlab"
@@ -193,7 +192,6 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
 # --- INTERFACE STREAMLIT ---
 st.title("🎓 Sistema Multiescolas de Certificação")
 
-# Criando as Abas no Dashboard
 tab_alunos, tab_eventos = st.tabs([
     "🏆 Alunos Destaque", 
     "📅 Eventos Gerais"
@@ -231,7 +229,8 @@ with tab_alunos:
             try:
                 pdf_final = gerar_certificado_no_padrao(
                     aluno_sel, turma_sel, nome_coord, nome_pdt, nome_diretor, 
-                    bimestre_sel, padrao_sel, arquivo_logo=logo_escola
+                    bimestre_sel, padrao_sel, arquivo_logo=logo_escola,
+                    lx=pos_x, ly=pos_y, lw=largura_w
                 )
                 st.download_button(
                     label=f"💾 BAIXAR PDF - {aluno_sel.upper()}", 
@@ -262,7 +261,8 @@ with tab_eventos:
         else:
             try:
                 pdf_evento = gerar_certificado_evento_geral(
-                    nome_part_ev, nome_evento_ev, ano_sel_ev, ch_ev, arquivo_logo=logo_escola
+                    nome_part_ev, nome_evento_ev, ano_sel_ev, ch_ev, arquivo_logo=logo_escola,
+                    lx=pos_x, ly=pos_y, lw=largura_w
                 )
                 st.download_button(
                     label=f"💾 BAIXAR CERTIFICADO - {nome_part_ev}",
