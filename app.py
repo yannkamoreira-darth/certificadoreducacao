@@ -23,6 +23,13 @@ logo_escola = st.sidebar.file_uploader(
 if logo_escola is not None:
     st.sidebar.image(logo_escola, caption="Prévia da Logo", width=120)
 
+# 💡 MENSAGEM DE AVISO ADICIONADA
+st.sidebar.info(
+    "💡 **Dica importante:** Para um melhor resultado visual no certificado, "
+    "certifique-se de remover o fundo da imagem (deixando-a transparente no formato PNG) "
+    "antes de fazer o upload."
+)
+
 # Ajuste de Posição e Tamanho da Logo
 with st.sidebar.expander("📐 Ajuste Fino da Logo no PDF", expanded=False):
     pos_x = st.number_input("Posição X (Horizontal mm):", value=12, min_value=0, max_value=200, help="Menor valor move para a esquerda.")
