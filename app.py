@@ -4,46 +4,47 @@ from fpdf import FPDF
 from pypdf import PdfReader, PdfWriter
 import io
 import os
+import tempfile
 from datetime import datetime
 
-# ==============================================================================
-# CONFIGURAÇÃO DA PÁGINA
-# ==============================================================================
-# Alterado para um título genérico para servir a qualquer escola
-st.set_page_config(page_title="Gerador de Certificados Escolares", layout="wide")
+# Configuração da página
+st.set_page_config(page_title="Gerador Multiescolas de Certificados", layout="wide")
+
+# ==========================================
+# BARRA LATERAL (SIDEBAR): UPLOAD DA LOGO
+# ==========================================
+st.sidebar.header("🏫 Configuração da Escola")
+logo_escola = st.sidebar.file_uploader(
+    "Upload da Logo da Escola (PNG ou JPG):", 
+    type=["png", "jpg", "jpeg"],
+    help="A logo será inserida no canto superior esquerdo de todos os certificados gerados."
+)
+
+if logo_escola is not None:
+    st.sidebar.image(logo_escola, caption="Prévia da Logo", width=150)
 
 
-# ==============================================================================
-# FUNÇÕES AUXILIARES
-# ==============================================================================
-def obter_caminho_fonte():
-    """
-    Procura o arquivo de fonte customizado no diretório atual,
-    ignorando diferenças entre maiúsculas e minúsculas no nome do arquivo.
-    """
-    nome_procurado = "arbutusslab-regular.ttf"
-    try:
-        for arquivo in os.listdir("."):
-            if arquivo.lower() == nome_procurado:
-                return arquivo
-    except Exception:
-        pass
-    return "ArbutusSlab-Regular.ttf"
-
-
-# ==============================================================================
-# FUNÇÃO 1: GERAR CERTIFICADO DE ALUNOS (DESTAQUE / SUPERAÇÃO)
-# ==============================================================================
-def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bimestre, medalha, nome_escola):
-    """
-    Gera o PDF do certificado de alunos usando posições fixas em milímetros.
-    Recebe 'nome_escola' dinamicamente para não ficar preso a uma única instituição.
-    """
+# --- FUNÇÃO 1: CERTIFICADO ALUNOS ---
+def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bimestre, medalha, arquivo_logo=None):
     packet = io.BytesIO()
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
     
-    # Definição das cores e títulos de acordo com a medalha
+    # --------------------------------------
+    # INSERÇÃO DA LOGO DA ESCOLA (SE EXISTIR)
+    # --------------------------------------
+    if arquivo_logo is not None:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
+            temp_file.write(arquivo_logo.getvalue())
+            caminho_logo_temp = temp_file.name
+        
+        # Desenha a logo no canto superior esquerdo (X=20mm, Y=15mm, Largura=35mm)
+        canv.image(caminho_logo_temp, x=20, y=15, w=35)
+        
+        # Remove o arquivo temporário após o uso
+        os.unlink(caminho_logo_temp)
+
+    # Definir cores e títulos com base no padrão/medalha
     if medalha == "OURO":
         cor_rgb = (212, 175, 55)
         texto_titulo = "ALUNO(A) DESTAQUE"
@@ -56,46 +57,40 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
         cor_rgb = (176, 115, 67)
         texto_titulo = "ALUNO(A) DESTAQUE"
         frase_inicial = "Certificamos como"
-    else:  # SUPERAÇÃO
+    else:
         cor_rgb = (0, 51, 102)
         texto_titulo = "SUPERAÇÃO"
         frase_inicial = "Certificamos como aluno(a)"
 
-    # Cabeçalho do certificado
     canv.set_font("Arial", "B", 16)
     canv.set_text_color(0, 0, 0)
     canv.set_xy(0, 48)
     canv.cell(297, 10, frase_inicial, ln=True, align="C")
 
-    # Título da Medalha/Destaque
     canv.set_font("Arial", "B", 36)
     canv.set_text_color(*cor_rgb)
     canv.set_xy(0, 60)
     canv.cell(297, 10, texto_titulo, ln=True, align="C")
 
-    # Nome do Estudante
     canv.set_font("Arial", "B", 26)
     canv.set_text_color(0, 0, 0)
     canv.set_xy(0, 74)
     canv.cell(297, 20, nome_aluno.upper(), ln=True, align="C")
     
-    # Corpo do Texto
     canv.set_font("Arial", "B", 16)
     canv.set_xy(25, 98)
     
     if medalha == "SUPERAÇÃO":
         frase = (f"Matriculado(a) na {turma.upper()}, pela notável evolução acadêmica "
-                 f"e esforço demonstrado no {bimestre} do Ano Letivo de {datetime.now().year}, "
-                 f"conseguindo avançar nos estudos de forma melhorada na {nome_escola.upper()}.")
+                 f"e esforço demonstrado no {bimestre} do Ano Letivo de 2026, "
+                 f"conseguindo avançar nos estudos de forma melhorada.")
     else:
-        # AGORA DINÂMICO: Usa a variável nome_escola em vez do nome fixo anterior
         frase = (f"Matriculado(a) na {turma.upper()}, pela excelência acadêmica "
-                 f"nos estudos no {bimestre} do Ano Letivo de {datetime.now().year} da {nome_escola.upper()}, "
+                 f"nos estudos no {bimestre} do Ano Letivo de 2026, "
                  f"alcançou padrão {medalha}.")
         
     canv.multi_cell(247, 8, frase, align="C")
 
-    # Data Atual por extenso
     meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
              "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
     hoje = datetime.now()
@@ -105,7 +100,7 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     canv.set_xy(0, 120)
     canv.cell(297, 10, data_extenso, ln=True, align="C")
     
-    # Assinaturas
+    # Linhas e nomes de assinaturas
     canv.set_font("Arial", "B", 12)
     canv.line(45, 146, 125, 146)
     canv.set_xy(35, 148)
@@ -119,8 +114,11 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     canv.set_xy(0, 172)
     canv.cell(297, 10, diretor.upper(), 0, 1, "C")
     
-    # Mesclar com o PDF modelo de fundo
+    # Junção das camadas PDF (Overlay)
     temp_pdf_content = canv.output()
+    if not os.path.exists("Certificado.pdf"):
+        raise FileNotFoundError("O arquivo 'Certificado.pdf' de modelo não foi encontrado!")
+
     modelo_pdf = PdfReader(open("Certificado.pdf", "rb"))
     overlay_pdf = PdfReader(io.BytesIO(temp_pdf_content))
     output = PdfWriter()
@@ -133,53 +131,54 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     return final_packet.getvalue()
 
 
-# ==============================================================================
-# FUNÇÃO 2: GERAR CERTIFICADO DE EVENTOS GERAIS
-# ==============================================================================
-def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_horaria, nome_escola):
-    """
-    Gera o PDF de eventos gerais recebendo o nome da escola dinamicamente.
-    """
+# --- FUNÇÃO 2: CERTIFICADO EVENTOS GERAIS ---
+def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_horaria, arquivo_logo=None):
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
     
-    arquivo_fonte = obter_caminho_fonte()
+    # --------------------------------------
+    # INSERÇÃO DA LOGO DA ESCOLA (SE EXISTIR)
+    # --------------------------------------
+    if arquivo_logo is not None:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
+            temp_file.write(arquivo_logo.getvalue())
+            caminho_logo_temp = temp_file.name
+        
+        # Desenha a logo no canto superior esquerdo (X=20mm, Y=15mm, Largura=35mm)
+        canv.image(caminho_logo_temp, x=20, y=15, w=35)
+        
+        # Remove o arquivo temporário
+        os.unlink(caminho_logo_temp)
     
-    if os.path.exists(arquivo_fonte):
-        canv.add_font("ArbutusSlab", "", arquivo_fonte, uni=True)
+    # Adiciona a fonte personalizada se disponível
+    if os.path.exists("ArbutusSlab-Regular.ttf"):
+        canv.add_font("ArbutusSlab", "", "ArbutusSlab-Regular.ttf", uni=True)
         fonte_usada = "ArbutusSlab"
     else:
         fonte_usada = "Arial"
     
-    canv.set_font(fonte_usada, "B" if fonte_usada == "Arial" else "", 24)
+    canv.set_font(fonte_usada, "", 24)
     canv.set_text_color(0, 51, 102) 
     canv.set_xy(0, 75)
     canv.cell(297, 10, "Certificamos que", ln=True, align="C")
     
-    canv.set_font(fonte_usada, "B" if fonte_usada == "Arial" else "", 26)
-    if fonte_usada == "ArbutusSlab":
-        canv.set_text_color(212, 175, 55)
-    else:
-        canv.set_text_color(184, 134, 11)
-        
+    canv.set_font(fonte_usada, "", 26)
+    canv.set_text_color(212, 175, 55) 
     canv.set_xy(0, 88)
     canv.cell(297, 15, nome_participante.upper(), ln=True, align="C")
     
-    canv.set_font(fonte_usada, "B" if fonte_usada == "Arial" else "", 24)
+    canv.set_font(fonte_usada, "", 24)
     canv.set_text_color(0, 51, 102) 
     canv.set_xy(30, 108)
-    
-    # Texto formatado dinamicamente com a escola informada no painel
-    frase = (f"Participou do evento como avaliador(a) no evento {nome_evento.upper()} no ano de {ano} "
-             f"na {nome_escola.upper()}, com carga horária total de {carga_horaria}h.")
+    frase = (f"Participou do evento {nome_evento.upper()} no ano de {ano} "
+             f"nesta unidade de ensino, com carga horária total de {carga_horaria}h.")
     canv.multi_cell(237, 9, frase, align="C")
 
     temp_pdf_content = canv.output()
-    
-    if not os.path.exists("Certificado_banca.pdf"):
-        raise FileNotFoundError("O arquivo 'Certificado_banca.pdf' não foi encontrado na raiz do projeto!")
+    if not os.path.exists("Certificado_Eventos.pdf"):
+        raise FileNotFoundError("O arquivo 'Certificado_Eventos.pdf' não foi encontrado!")
 
-    modelo_pdf = PdfReader(open("Certificado_banca.pdf", "rb"))
+    modelo_pdf = PdfReader(open("Certificado_Eventos.pdf", "rb"))
     overlay_pdf = PdfReader(io.BytesIO(temp_pdf_content))
     output = PdfWriter()
     pagina_modelo = modelo_pdf.pages[0]
@@ -191,33 +190,25 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
     return final_packet.getvalue()
 
 
-# ==============================================================================
-# INTERFACE COM O USUÁRIO (STREAMLIT)
-# ==============================================================================
-st.title("🎓 Sistema de Certificação Escolar")
+# --- INTERFACE STREAMLIT ---
+st.title("🎓 Sistema Multiescolas de Certificação")
 
-# Criando as 2 Abas operacionais
+# Criando as Abas no Dashboard
 tab_alunos, tab_eventos = st.tabs([
     "🏆 Alunos Destaque", 
     "📅 Eventos Gerais"
 ])
 
-# ------------------------------------------------------------------------------
-# ABA 1: ALUNOS DESTAQUE
-# ------------------------------------------------------------------------------
+# --- CONTEÚDO DA ABA 1: ALUNOS ---
 with tab_alunos:
-    with st.expander("⚙️ Configurações da Escola e Assinaturas", expanded=True):
-        # Campo adicionado para permitir definir a escola também no certificado do aluno
-        nome_escola_aluno = st.text_input("Nome da Escola / Unidade de Ensino:", "EEMTI Almirante Tamandaré", key="cfg_escola_aluno")
-        
-        st.divider()
+    with st.expander("⚙️ Configurações de Assinaturas e Critérios dos Alunos", expanded=True):
         col_c1, col_c2, col_c3 = st.columns(3)
         with col_c1:
-            nome_coord = st.text_input("Coordenador(a):", "COORDENADOR(A)", key="cfg_coord")
+            nome_coord = st.text_input("Coordenador(a):", "COORDENADORA", key="cfg_coord")
         with col_c2:
             nome_pdt = st.text_input("Professor(a) PDT:", "NOME DO PROFESSOR(A)", key="cfg_pdt")
         with col_c3:
-            nome_diretor = st.text_input("Diretor(a):", "NOME DIRETOR(A)", key="cfg_dir")
+            nome_diretor = st.text_input("Diretor(a):", "NOME DO DIRETOR(A)", key="cfg_dir")
         
         st.divider()
         col_c4, col_c5 = st.columns(2)
@@ -234,31 +225,27 @@ with tab_alunos:
         aluno_sel = st.text_input("Digite o Nome Completo do Aluno:", placeholder="Nome do estudante", key="nome_aluno")
 
     if st.button("🚀 GERAR CERTIFICADO DE ALUNO", use_container_width=True):
-        if not turma_sel.strip() or not aluno_sel.strip() or not nome_escola_aluno.strip():
-            st.warning("⚠️ Por favor, preencha o Nome da Escola, a Turma e o Nome do Aluno!")
+        if not turma_sel.strip() or not aluno_sel.strip():
+            st.warning("⚠️ Por favor, preencha a Turma e o Nome do Aluno antes de gerar!")
         else:
             try:
-                # Agora envia também o nome_escola_aluno para a função
                 pdf_final = gerar_certificado_no_padrao(
-                    aluno_sel, turma_sel, nome_coord, nome_pdt, nome_diretor, bimestre_sel, padrao_sel, nome_escola_aluno
+                    aluno_sel, turma_sel, nome_coord, nome_pdt, nome_diretor, 
+                    bimestre_sel, padrao_sel, arquivo_logo=logo_escola
                 )
                 st.download_button(
-                    label=f"💾 BAIXAR PDF - {aluno_sel.upper()}",
-                    data=pdf_final,
-                    file_name=f"Certificado_{padrao_sel}_{aluno_sel.replace(' ', '_')}.pdf",
+                    label=f"💾 BAIXAR PDF - {aluno_sel.upper()}", 
+                    data=pdf_final, 
+                    file_name=f"Certificado_{padrao_sel}_{aluno_sel.replace(' ', '_')}.pdf", 
                     mime="application/pdf"
                 )
                 st.balloons()
             except Exception as e:
-                st.error(f"Erro ao gerar certificado: {e}")
+                st.error(f"Erro ao gerar certificado de aluno: {e}")
 
-# ------------------------------------------------------------------------------
-# ABA 2: EVENTOS GERAIS
-# ------------------------------------------------------------------------------
+# --- CONTEÚDO DA ABA 2: EVENTOS GERAIS ---
 with tab_eventos:
     st.subheader("Certificado de Eventos Gerais da Escola")
-    
-    nome_escola_ev = st.text_input("Nome da Unidade de Ensino / Escola:", "EEMTI Almirante Tamandaré", key="ev_escola")
     
     col_ev1, col_ev2 = st.columns(2)
     with col_ev1:
@@ -270,11 +257,13 @@ with tab_eventos:
         ch_ev = st.text_input("Carga Horária (Apenas números, Ex: 4, 10, 20):", "5", key="ev_ch")
 
     if st.button("🚀 GERAR CERTIFICADO DE EVENTO GERAL", use_container_width=True):
-        if nome_part_ev.strip() == "" or nome_evento_ev.strip() == "" or nome_escola_ev.strip() == "":
-            st.warning("Por favor, preencha todos os campos obrigatórios (Escola, Participante e Evento).")
+        if nome_part_ev.strip() == "" or nome_evento_ev.strip() == "":
+            st.warning("Por favor, preencha o nome do participante e o nome do evento.")
         else:
             try:
-                pdf_evento = gerar_certificado_evento_geral(nome_part_ev, nome_evento_ev, ano_sel_ev, ch_ev, nome_escola_ev)
+                pdf_evento = gerar_certificado_evento_geral(
+                    nome_part_ev, nome_evento_ev, ano_sel_ev, ch_ev, arquivo_logo=logo_escola
+                )
                 st.download_button(
                     label=f"💾 BAIXAR CERTIFICADO - {nome_part_ev}",
                     data=pdf_evento,
@@ -286,14 +275,12 @@ with tab_eventos:
             except Exception as e:
                 st.error(f"Erro ao gerar certificado de evento: {e}")
 
-# ------------------------------------------------------------------------------
-# RODAPÉ
-# ------------------------------------------------------------------------------
+# --- RODAPÉ ---
 st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: #666666; font-size: 0.9em; padding: 10px;'>
-        © 2026 Gerador de Certificados - Desenvolvido por <b>Prof. Yannka Moreira</b> e <b>Prof. Alan Ribeiro</b>
+        © 2026 Sistema Multiescolas de Certificação - Desenvolvido por <b>Prof. Yannka Moreira</b> e <b>Prof. Alan Ribeiro</b>
     </div>
     """, 
     unsafe_allow_html=True
