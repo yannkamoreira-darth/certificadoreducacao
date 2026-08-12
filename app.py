@@ -33,7 +33,7 @@ st.sidebar.info(
 if logo_escola is not None:
     st.sidebar.image(logo_escola, caption="Prévia da Logo", width=120)
 
-# Menu sanfonado para ajuste de posição e dimensão da logo no PDF
+# Menu para ajuste de posição e dimensão da logo no PDF
 with st.sidebar.expander("📐 Ajuste Fino da Logo no PDF", expanded=False):
     pos_x = st.number_input("Posição X (Horizontal mm):", value=12, min_value=0, max_value=200, help="Menor valor move para a esquerda.")
     pos_y = st.number_input("Posição Y (Vertical mm):", value=12, min_value=0, max_value=200, help="Menor valor move para o topo.")
@@ -49,7 +49,6 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
     
-    # Inserção da Logo na folha transparente
     if arquivo_logo is not None:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
             temp_file.write(arquivo_logo.getvalue())
@@ -57,7 +56,6 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
         canv.image(caminho_logo_temp, x=lx, y=ly, w=lw)
         os.unlink(caminho_logo_temp)
 
-    # Definição de cores e textos de acordo com o padrão
     if medalha == "OURO":
         cor_rgb = (212, 175, 55)
         texto_titulo = "ALUNO(A) DESTAQUE"
@@ -113,7 +111,7 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     canv.set_xy(0, 120)
     canv.cell(297, 10, data_extenso, ln=True, align="C")
     
-    # Linhas de Assinaturas
+    # Assinaturas
     canv.set_font("Arial", "B", 12)
     canv.line(45, 146, 125, 146)
     canv.set_xy(35, 148)
@@ -127,21 +125,26 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     canv.set_xy(0, 172)
     canv.cell(297, 10, diretor.upper(), 0, 1, "C")
     
-    # Fusão de PDF com modelo
-    temp_pdf_content = canv.output()
-    if not os.path.exists("Certificado.pdf"):
-        raise FileNotFoundError("O arquivo 'Certificado.pdf' de modelo não foi encontrado!")
-
-    modelo_pdf = PdfReader(open("Certificado.pdf", "rb"))
-    overlay_pdf = PdfReader(io.BytesIO(temp_pdf_content))
-    output = PdfWriter()
-    pagina_modelo = modelo_pdf.pages[0]
-    pagina_modelo.merge_page(overlay_pdf.pages[0])
-    output.add_page(pagina_modelo)
+    pdf_bytes = bytes(canv.output())
+    arquivo_modelo = "Certificado.pdf"
     
-    final_packet = io.BytesIO()
-    output.write(final_packet)
-    return final_packet.getvalue()
+    if not os.path.exists(arquivo_modelo):
+        raise FileNotFoundError(f"O arquivo '{arquivo_modelo}' não foi encontrado!")
+
+    try:
+        with open(arquivo_modelo, "rb") as f_modelo:
+            modelo_pdf = PdfReader(f_modelo)
+            overlay_pdf = PdfReader(io.BytesIO(pdf_bytes))
+            output = PdfWriter()
+            pagina_modelo = modelo_pdf.pages[0]
+            pagina_modelo.merge_page(overlay_pdf.pages[0])
+            output.add_page(pagina_modelo)
+            
+            final_packet = io.BytesIO()
+            output.write(final_packet)
+            return final_packet.getvalue()
+    except Exception as e:
+        raise Exception(f"Erro ao ler o arquivo '{arquivo_modelo}'. O arquivo pode estar corrompido no repositório. Detalhes: {e}")
 
 
 # --- FUNÇÃO 2: CERTIFICADO EVENTOS GERAIS ---
@@ -179,20 +182,26 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
              f"nesta unidade de ensino, com carga horária total de {carga_horaria}h.")
     canv.multi_cell(237, 9, frase, align="C")
 
-    temp_pdf_content = canv.output()
-    if not os.path.exists("Certificado_Eventos.pdf"):
-        raise FileNotFoundError("O arquivo 'Certificado_Eventos.pdf' não foi encontrado!")
-
-    modelo_pdf = PdfReader(open("Certificado_Eventos.pdf", "rb"))
-    overlay_pdf = PdfReader(io.BytesIO(temp_pdf_content))
-    output = PdfWriter()
-    pagina_modelo = modelo_pdf.pages[0]
-    pagina_modelo.merge_page(overlay_pdf.pages[0])
-    output.add_page(pagina_modelo)
+    pdf_bytes = bytes(canv.output())
+    arquivo_modelo = "Certificado_Eventos.pdf"
     
-    final_packet = io.BytesIO()
-    output.write(final_packet)
-    return final_packet.getvalue()
+    if not os.path.exists(arquivo_modelo):
+        raise FileNotFoundError(f"O arquivo '{arquivo_modelo}' não foi encontrado!")
+
+    try:
+        with open(arquivo_modelo, "rb") as f_modelo:
+            modelo_pdf = PdfReader(f_modelo)
+            overlay_pdf = PdfReader(io.BytesIO(pdf_bytes))
+            output = PdfWriter()
+            pagina_modelo = modelo_pdf.pages[0]
+            pagina_modelo.merge_page(overlay_pdf.pages[0])
+            output.add_page(pagina_modelo)
+            
+            final_packet = io.BytesIO()
+            output.write(final_packet)
+            return final_packet.getvalue()
+    except Exception as e:
+        raise Exception(f"Erro ao ler o arquivo '{arquivo_modelo}'. Detalhes: {e}")
 
 
 # --- FUNÇÃO 3: CERTIFICADO ALUNOS MONITORES ---
@@ -245,29 +254,35 @@ def gerar_certificado_monitor(nome_monitor, turma, nome_evento, ano, carga_horar
     canv.set_xy(0, 138)
     canv.cell(297, 10, data_extenso, ln=True, align="C")
 
-    temp_pdf_content = canv.output()
+    pdf_bytes = bytes(canv.output())
     
-    # Lógica de seleção do modelo de fundo (Prioriza Certificado_Monitor.pdf)
+    # Lógica de seleção do modelo de fundo
     if os.path.exists("Certificado_Monitor.pdf"):
         arquivo_modelo = "Certificado_Monitor.pdf"
     elif os.path.exists("Certificado_Eventos.pdf"):
         arquivo_modelo = "Certificado_Eventos.pdf"
-    else:
+    elif os.path.exists("Certificado.pdf"):
         arquivo_modelo = "Certificado.pdf"
+    else:
+        raise FileNotFoundError("Nenhum arquivo de modelo PDF foi encontrado no repositório!")
 
-    if not os.path.exists(arquivo_modelo):
-        raise FileNotFoundError("Nenhum arquivo de modelo PDF foi encontrado na pasta!")
-
-    modelo_pdf = PdfReader(open(arquivo_modelo, "rb"))
-    overlay_pdf = PdfReader(io.BytesIO(temp_pdf_content))
-    output = PdfWriter()
-    pagina_modelo = modelo_pdf.pages[0]
-    pagina_modelo.merge_page(overlay_pdf.pages[0])
-    output.add_page(pagina_modelo)
-    
-    final_packet = io.BytesIO()
-    output.write(final_packet)
-    return final_packet.getvalue()
+    try:
+        with open(arquivo_modelo, "rb") as f_modelo:
+            modelo_pdf = PdfReader(f_modelo)
+            overlay_pdf = PdfReader(io.BytesIO(pdf_bytes))
+            output = PdfWriter()
+            pagina_modelo = modelo_pdf.pages[0]
+            pagina_modelo.merge_page(overlay_pdf.pages[0])
+            output.add_page(pagina_modelo)
+            
+            final_packet = io.BytesIO()
+            output.write(final_packet)
+            return final_packet.getvalue()
+    except Exception as e:
+        raise Exception(
+            f"O modelo '{arquivo_modelo}' está corrompido no GitHub. "
+            f"Por favor, reenvie o arquivo '{arquivo_modelo}' no repositório. Detalhes: {e}"
+        )
 
 
 # ==========================================
@@ -275,7 +290,6 @@ def gerar_certificado_monitor(nome_monitor, turma, nome_evento, ano, carga_horar
 # ==========================================
 st.title("🎓 Sistema Multiescolas de Certificação")
 
-# Criação das 3 abas
 tab_alunos, tab_eventos, tab_monitores = st.tabs([
     "🏆 Alunos Destaque", 
     "📅 Eventos Gerais",
