@@ -7,57 +7,57 @@ import os
 import tempfile
 from datetime import datetime
 
-# Configuração da página
+# Configuração da página da aplicação
 st.set_page_config(page_title="Gerador Multiescolas de Certificados", layout="wide")
 
 # ==========================================
 # BARRA LATERAL (SIDEBAR): CONFIGURAÇÕES DA ESCOLA
 # ==========================================
 st.sidebar.header("🏫 Configuração da Escola")
+
+# Upload da Logo da Escola
 logo_escola = st.sidebar.file_uploader(
     "Upload da Logo da Escola (PNG ou JPG):", 
     type=["png", "jpg", "jpeg"],
     help="A logo será inserida no canto superior esquerdo de todos os certificados gerados."
 )
 
-if logo_escola is not None:
-    st.sidebar.image(logo_escola, caption="Prévia da Logo", width=120)
-
-# 💡 MENSAGEM DE AVISO ADICIONADA
+# Mensagem orientativa sobre a transparência do fundo
 st.sidebar.info(
     "💡 **Dica importante:** Para um melhor resultado visual no certificado, "
     "certifique-se de remover o fundo da imagem (deixando-a transparente no formato PNG) "
     "antes de fazer o upload."
 )
 
-# Ajuste de Posição e Tamanho da Logo
+# Exibição de prévia da logo
+if logo_escola is not None:
+    st.sidebar.image(logo_escola, caption="Prévia da Logo", width=120)
+
+# Menu sanfonado para ajuste de posição e dimensão da logo no PDF
 with st.sidebar.expander("📐 Ajuste Fino da Logo no PDF", expanded=False):
     pos_x = st.number_input("Posição X (Horizontal mm):", value=12, min_value=0, max_value=200, help="Menor valor move para a esquerda.")
     pos_y = st.number_input("Posição Y (Vertical mm):", value=12, min_value=0, max_value=200, help="Menor valor move para o topo.")
     largura_w = st.number_input("Largura da Logo (mm):", value=25, min_value=5, max_value=100, help="Tamanho da imagem.")
 
 
-# --- FUNÇÃO 1: CERTIFICADO ALUNOS ---
+# ==========================================
+# FUNÇÕES DE GERAÇÃO DE PDFS (OVERLAY FPDF + PYPDF)
+# ==========================================
+
+# --- FUNÇÃO 1: CERTIFICADO ALUNOS DESTAQUE ---
 def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bimestre, medalha, arquivo_logo=None, lx=12, ly=12, lw=25):
-    packet = io.BytesIO()
     canv = FPDF(orientation="L", unit="mm", format="A4")
     canv.add_page()
     
-    # --------------------------------------
-    # INSERÇÃO DA LOGO COM POSICIONAMENTO AJUSTADO
-    # --------------------------------------
+    # Inserção da Logo na folha transparente
     if arquivo_logo is not None:
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
             temp_file.write(arquivo_logo.getvalue())
             caminho_logo_temp = temp_file.name
-        
-        # Desenha a logo utilizando as coordenadas personalizadas da barra lateral
         canv.image(caminho_logo_temp, x=lx, y=ly, w=lw)
-        
-        # Remove o arquivo temporário do sistema
         os.unlink(caminho_logo_temp)
 
-    # Definir cores e títulos com base no padrão/medalha
+    # Definição de cores e textos de acordo com o padrão
     if medalha == "OURO":
         cor_rgb = (212, 175, 55)
         texto_titulo = "ALUNO(A) DESTAQUE"
@@ -127,7 +127,7 @@ def gerar_certificado_no_padrao(nome_aluno, turma, coordenador, pdt, diretor, bi
     canv.set_xy(0, 172)
     canv.cell(297, 10, diretor.upper(), 0, 1, "C")
     
-    # Mesclagem de Camadas
+    # Fusão de PDF com modelo
     temp_pdf_content = canv.output()
     if not os.path.exists("Certificado.pdf"):
         raise FileNotFoundError("O arquivo 'Certificado.pdf' de modelo não foi encontrado!")
@@ -153,7 +153,6 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
         with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
             temp_file.write(arquivo_logo.getvalue())
             caminho_logo_temp = temp_file.name
-        
         canv.image(caminho_logo_temp, x=lx, y=ly, w=lw)
         os.unlink(caminho_logo_temp)
     
@@ -196,15 +195,94 @@ def gerar_certificado_evento_geral(nome_participante, nome_evento, ano, carga_ho
     return final_packet.getvalue()
 
 
-# --- INTERFACE STREAMLIT ---
+# --- FUNÇÃO 3: CERTIFICADO ALUNOS MONITORES ---
+def gerar_certificado_monitor(nome_monitor, turma, nome_evento, ano, carga_horaria, arquivo_logo=None, lx=12, ly=12, lw=25):
+    canv = FPDF(orientation="L", unit="mm", format="A4")
+    canv.add_page()
+    
+    if arquivo_logo is not None:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".png") as temp_file:
+            temp_file.write(arquivo_logo.getvalue())
+            caminho_logo_temp = temp_file.name
+        canv.image(caminho_logo_temp, x=lx, y=ly, w=lw)
+        os.unlink(caminho_logo_temp)
+    
+    if os.path.exists("ArbutusSlab-Regular.ttf"):
+        canv.add_font("ArbutusSlab", "", "ArbutusSlab-Regular.ttf", uni=True)
+        fonte_usada = "ArbutusSlab"
+    else:
+        fonte_usada = "Arial"
+    
+    # Cabeçalho
+    canv.set_font(fonte_usada, "", 22)
+    canv.set_text_color(0, 51, 102) 
+    canv.set_xy(0, 68)
+    canv.cell(297, 10, "Certificamos que o(a) aluno(a)", ln=True, align="C")
+    
+    # Nome do Monitor
+    canv.set_font(fonte_usada, "", 26)
+    canv.set_text_color(212, 175, 55) 
+    canv.set_xy(0, 80)
+    canv.cell(297, 15, nome_monitor.upper(), ln=True, align="C")
+    
+    # Texto descritivo da Monitoria
+    canv.set_font(fonte_usada, "", 20)
+    canv.set_text_color(0, 51, 102) 
+    canv.set_xy(25, 100)
+    
+    frase = (f"Matriculado(a) na turma {turma.upper()}, atuou com excelência como "
+             f"ALUNO(A) MONITOR(A) no evento {nome_evento.upper()} durante o ano letivo de {ano}, "
+             f"cumprindo carga horária total de {carga_horaria} horas.")
+    canv.multi_cell(247, 9, frase, align="C")
+
+    # Data
+    meses = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", 
+             "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"]
+    hoje = datetime.now()
+    data_extenso = f"Fortaleza, {hoje.day} de {meses[hoje.month - 1]} de {hoje.year}"
+    
+    canv.set_font("Arial", "", 13)
+    canv.set_xy(0, 138)
+    canv.cell(297, 10, data_extenso, ln=True, align="C")
+
+    temp_pdf_content = canv.output()
+    
+    # Lógica de seleção do modelo de fundo (Prioriza Certificado_Monitor.pdf)
+    if os.path.exists("Certificado_Monitor.pdf"):
+        arquivo_modelo = "Certificado_Monitor.pdf"
+    elif os.path.exists("Certificado_Eventos.pdf"):
+        arquivo_modelo = "Certificado_Eventos.pdf"
+    else:
+        arquivo_modelo = "Certificado.pdf"
+
+    if not os.path.exists(arquivo_modelo):
+        raise FileNotFoundError("Nenhum arquivo de modelo PDF foi encontrado na pasta!")
+
+    modelo_pdf = PdfReader(open(arquivo_modelo, "rb"))
+    overlay_pdf = PdfReader(io.BytesIO(temp_pdf_content))
+    output = PdfWriter()
+    pagina_modelo = modelo_pdf.pages[0]
+    pagina_modelo.merge_page(overlay_pdf.pages[0])
+    output.add_page(pagina_modelo)
+    
+    final_packet = io.BytesIO()
+    output.write(final_packet)
+    return final_packet.getvalue()
+
+
+# ==========================================
+# INTERFACE DO USUÁRIO (STREAMLIT)
+# ==========================================
 st.title("🎓 Sistema Multiescolas de Certificação")
 
-tab_alunos, tab_eventos = st.tabs([
+# Criação das 3 abas
+tab_alunos, tab_eventos, tab_monitores = st.tabs([
     "🏆 Alunos Destaque", 
-    "📅 Eventos Gerais"
+    "📅 Eventos Gerais",
+    "🤝 Alunos Monitores"
 ])
 
-# --- CONTEÚDO DA ABA 1: ALUNOS ---
+# --- ABA 1: ALUNOS DESTAQUE ---
 with tab_alunos:
     with st.expander("⚙️ Configurações de Assinaturas e Critérios dos Alunos", expanded=True):
         col_c1, col_c2, col_c3 = st.columns(3)
@@ -249,7 +327,7 @@ with tab_alunos:
             except Exception as e:
                 st.error(f"Erro ao gerar certificado de aluno: {e}")
 
-# --- CONTEÚDO DA ABA 2: EVENTOS GERAIS ---
+# --- ABA 2: EVENTOS GERAIS ---
 with tab_eventos:
     st.subheader("Certificado de Eventos Gerais da Escola")
     
@@ -281,6 +359,44 @@ with tab_eventos:
                 st.balloons()
             except Exception as e:
                 st.error(f"Erro ao gerar certificado de evento: {e}")
+
+# --- ABA 3: ALUNOS MONITORES ---
+with tab_monitores:
+    st.subheader("Certificado de Aluno Monitor")
+    
+    col_mon1, col_mon2 = st.columns(2)
+    with col_mon1:
+        nome_monitor_in = st.text_input("Nome Completo do Aluno Monitor:", key="mon_nome").upper()
+        turma_monitor_in = st.text_input("Turma do Monitor (Ex: 2ª SÉRIE B):", key="mon_turma").upper()
+    with col_mon2:
+        nome_evento_mon_in = st.text_input("Nome do Evento / Projeto da Monitoria:", key="mon_evento").upper()
+        col_sub1, col_sub2 = st.columns(2)
+        with col_sub1:
+            anos_mon = [str(a) for a in range(2026, 2032)]
+            ano_mon_in = st.selectbox("Ano Letivo:", anos_mon, key="mon_ano")
+        with col_sub2:
+            ch_mon_in = st.text_input("Carga Horária (Horas):", "20", key="mon_ch")
+
+    if st.button("🚀 GERAR CERTIFICADO DE MONITOR", use_container_width=True):
+        if not nome_monitor_in.strip() or not turma_monitor_in.strip() or not nome_evento_mon_in.strip():
+            st.warning("⚠️ Por favor, preencha o Nome do Monitor, a Turma e o Evento antes de gerar!")
+        else:
+            try:
+                pdf_monitor = gerar_certificado_monitor(
+                    nome_monitor_in, turma_monitor_in, nome_evento_mon_in, 
+                    ano_mon_in, ch_mon_in, arquivo_logo=logo_escola,
+                    lx=pos_x, ly=pos_y, lw=largura_w
+                )
+                st.download_button(
+                    label=f"💾 BAIXAR CERTIFICADO - {nome_monitor_in}",
+                    data=pdf_monitor,
+                    file_name=f"Certificado_Monitor_{nome_monitor_in.replace(' ', '_')}.pdf",
+                    mime="application/pdf"
+                )
+                st.success("Certificado de monitoria gerado com sucesso!")
+                st.balloons()
+            except Exception as e:
+                st.error(f"Erro ao gerar certificado de monitoria: {e}")
 
 # --- RODAPÉ ---
 st.markdown("---")
