@@ -1,3 +1,4 @@
 streamlit
 fpdf2
 pypdf
+pypdf<7.0.0
